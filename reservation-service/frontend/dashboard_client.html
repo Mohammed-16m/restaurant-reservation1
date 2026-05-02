@@ -68,6 +68,19 @@
         .ANNULEE    { background: #f8d7da; color: #721c24; }
         .EN_ATTENTE { background: #fff3cd; color: #856404; }
 
+        .btn-modifier {
+            background: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        .btn-modifier:hover { background: #0056b3; }
+
         .btn-annuler {
             background: #dc3545;
             color: white;
@@ -139,6 +152,9 @@
                             <td><span class="statut ${r.statut}">${r.statut}</span></td>
                             <td>
                                 ${r.statut !== 'ANNULEE' ? `
+                                    <button class="btn-modifier" onclick="window.location.href='formulaire_modification.html?id=${r.id}'">
+                                        Modifier
+                                    </button>
                                     <button class="btn-annuler" onclick="annuler(${r.id})">
                                         Annuler
                                     </button>
