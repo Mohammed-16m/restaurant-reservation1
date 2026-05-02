@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifier la réservation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #e74c3c;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .reservation-id {
+            background: #f8f9fa;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #777;
+            display: inline-block;
+        }
+
+        /* Info actuelle */
+        .info-actuelle {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .info-actuelle h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .info-ligne {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 3px 0;
+            color: #555;
+        }
+
+        .info-ligne span:last-child {
+            font-weight: 600;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+
+        .boutons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-modifier {
+            flex: 2;
+            padding: 14px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-modifier:hover { background: #c0392b; }
+
+        .btn-annuler {
+            flex: 1;
+            padding: 14px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-annuler:hover { background: #7f8c8d; }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .success { background: #d4edda; color: #155724; display: block; }
+        .error   { background: #f8d7da; color: #721c24; display: block; }
+
+        .chargement {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✏️ Modifier la réservation</h2>
+            <span class="reservation-id" id="reservation_id_label">Chargement...</span>
+        </div>
+
+        <!-- Info actuelle -->
+        <div class="info-actuelle" id="info_actuelle">
+            <h4>📋 Informations actuelles</h4>
+            <div class="chargement">Chargement...</div>
+        </div>
+
+        <!-- Formulaire -->
+        <label>📅 Nouvelle date :</label>
+        <input type="date" id="date">
+
+        <label>🕐 Nouvelle heure :</label>
+        <input type="time" id="heure">
+
+        <label>👥 Nombre de personnes :</label>
+        <input type="number" id="nb_personnes" min="1" max="20">
+
+        <div class="boutons">
+            <button class="btn-modifier" onclick="modifier()">
+                ✅ Confirmer la modification
+            </button>
+            <a href="dashboard_client.html" class="btn-annuler">
+                ❌ Annuler
+            </a>
+        </div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token') || 'test_token';
+
+        // Récupérer l'ID de la réservation depuis l'URL
+        // Ex: formulaire_modification.html?id=3
+        const params = new URLSearchParams(window.location.search);
+        const reservationId = params.get('id');
+
+        // Charger les infos actuelles de la réservation
+        async function chargerReservation() {
+            if (!reservationId) {
+                afficherMessage('❌ Aucune réservation sélectionnée.', 'error');
+                return;
+            }
+
+            document.getElementById('reservation_id_label').textContent =
+                'Réservation #' + reservationId;
+
+            try {
+                const res = await fetch(
+                    `http://127.0.0.1:8083/api/reservations/${reservationId}/`,
+                    { headers: { 'Authorization': 'Bearer ' + token } }
+                );
+                const data = await res.json();
+
+                if (data.status !== 'success') {
+                    afficherMessage('❌ Réservation introuvable.', 'error');
+                    return;
+                }
+
+                const r = data.data;
+
+                // Afficher les infos actuelles
+                document.getElementById('info_actuelle').innerHTML = `
+                    <h4>📋 Informations actuelles</h4>
+                    <div class="info-ligne">
+                        <span>Table</span>
+                        <span>Table ${r.table_id}</span>
+                    </div>
+                    <div class="info-ligne">
+                        <span>Date</span>
+                        <span>${r.date}</span>
+                    </div>
+                    <div class="info-ligne">
+                        <span>Heure</span>
+                        <span>${r.heure}</span>
+                    </div>
+                    <div class="info-ligne">
+                        <span>Personnes</span>
+                        <span>${r.nb_personnes} personnes</span>
+                    </div>
+                    <div class="info-ligne">
+                        <span>Statut</span>
+                        <span>${r.statut}</span>
+                    </div>
+                `;
+
+                // Pré-remplir le formulaire avec les valeurs actuelles
+                document.getElementById('date').value = r.date;
+                document.getElementById('heure').value = r.heure.substring(0, 5);
+                document.getElementById('nb_personnes').value = r.nb_personnes;
+
+                // Date minimum = aujourd'hui
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('date').min = today;
+
+            } catch (err) {
+                afficherMessage('❌ Impossible de contacter le serveur.', 'error');
+            }
+        }
+
+        // Modifier la réservation
+        async function modifier() {
+            const date        = document.getElementById('date').value;
+            const heure       = document.getElementById('heure').value;
+            const nb_personnes = document.getElementById('nb_personnes').value;
+
+            if (!date || !heure || !nb_personnes) {
+                afficherMessage('❌ Veuillez remplir tous les champs.', 'error');
+                return;
+            }
+
+            const body = {
+                date:         date,
+                heure:        heure + ':00',
+                nb_personnes: parseInt(nb_personnes)
+            };
+
+            try {
+                const res = await fetch(
+                    `http://127.0.0.1:8083/api/reservations/${reservationId}/`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify(body)
+                    }
+                );
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    afficherMessage('✅ Réservation modifiée avec succès !', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard_client.html';
+                    }, 1500);
+                } else {
+                    afficherMessage(
+                        '❌ ' + (data.message || 'Erreur lors de la modification.'),
+                        'error'
+                    );
+                }
+            } catch (err) {
+                afficherMessage('❌ Impossible de contacter le serveur.', 'error');
+            }
+        }
+
+        function afficherMessage(texte, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = texte;
+            msg.className = 'message ' + type;
+        }
+
+        // Charger au démarrage
+        chargerReservation();
+    </script>
+</body>
+</html>
